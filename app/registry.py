@@ -1,4 +1,4 @@
-from tools.containers import (
+from .tools.containers import (
     list_containers,
     create_container,
     start_container,
@@ -8,11 +8,11 @@ from tools.containers import (
     container_logs,
     exec_container,
 )
-from tools.images import list_images, pull_image, build_image, remove_image
-from tools.networks import list_networks, create_network, remove_network
-from tools.volumes import list_volumes, create_volume, remove_volume
-from tools.compose import compose_up, compose_down, compose_logs
-from tools.system import docker_info_tool, docker_stats_tool, docker_prune_tool
+from .tools.images import list_images, pull_image, build_image, remove_image
+from .tools.networks import list_networks, create_network, remove_network
+from .tools.volumes import list_volumes, create_volume, remove_volume
+from .tools.compose import compose_up, compose_down, compose_logs
+from .tools.system import docker_info_tool, docker_stats_tool, docker_prune_tool
 
 TOOLS = [
     {

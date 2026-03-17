@@ -1,5 +1,5 @@
 import json
-from docker_client import get_client
+from ..docker_client import get_client
 
 
 def _ok(text: str) -> dict:

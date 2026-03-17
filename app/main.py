@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from auth import verify_token
-from docker_client import get_client
-from registry import DISPATCHER, TOOLS
+from .auth import verify_token
+from .docker_client import get_client
+from .registry import DISPATCHER, TOOLS
 
 
 @asynccontextmanager
