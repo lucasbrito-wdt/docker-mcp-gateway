@@ -1,9 +1,8 @@
-import json
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
 
 from .auth import verify_token
 from .docker_client import get_client
@@ -28,33 +27,30 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/mcp")
-async def mcp_sse():
-    async def event_stream():
-        yield "data: {\"type\": \"connected\"}\n\n"
-
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
 @app.post("/mcp", dependencies=[Depends(verify_token)])
 async def mcp_handler(request: Request):
     try:
         body = await request.json()
     except Exception:
-        return JSONResponse({"error": "invalid JSON body"}, status_code=400)
+        return JSONResponse({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}, status_code=400)
 
+    req_id = body.get("id")
     method = body.get("method")
     params = body.get("params", {})
 
+    if method == "initialize":
+        return JSONResponse({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {}},
+                "serverInfo": {"name": "docker-mcp-gateway", "version": "1.0.0"},
+            },
+        })
+
     if method == "tools/list":
-        return JSONResponse({"tools": TOOLS})
+        return JSONResponse({"jsonrpc": "2.0", "id": req_id, "result": {"tools": TOOLS}})
 
     if method == "tools/call":
         tool_name = params.get("name")
@@ -62,9 +58,21 @@ async def mcp_handler(request: Request):
 
         handler = DISPATCHER.get(tool_name)
         if handler is None:
-            return JSONResponse({"error": f"unknown tool: {tool_name}"})
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32601, "message": f"Unknown tool: {tool_name}"},
+            })
 
         result = handler(arguments)
-        return JSONResponse(result)
+        return JSONResponse({
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {"content": [{"type": "text", "text": str(result)}]},
+        })
 
-    return JSONResponse({"error": "method not found"})
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "error": {"code": -32601, "message": f"Method not found: {method}"},
+    })
